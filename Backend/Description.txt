@@ -1,0 +1,3 @@
+The scr is the main folder
+
+The defaults folder is basically a fixed prompt that has to be sent

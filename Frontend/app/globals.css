@@ -156,4 +156,15 @@
   .glow-strong {
     box-shadow: 0 0 60px oklch(0.55 0.25 264 / 0.5), 0 0 100px oklch(0.6 0.24 330 / 0.3);
   }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }

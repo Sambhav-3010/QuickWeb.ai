@@ -14,7 +14,7 @@ export function CodePreviewToggle({ content, fileName, previewUrl, view = "previ
   const setView = onViewChange || (() => { })
 
   return (
-    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm">
+    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm max-w-[62%]">
       <div className="h-12 border-b border-border/50 px-4 flex items-center justify-between glass-strong">
         <span className="text-sm font-semibold text-foreground">
           {view === "code" ? fileName || "No file selected" : "Preview"}
@@ -43,10 +43,19 @@ export function CodePreviewToggle({ content, fileName, previewUrl, view = "previ
 
       <div className="flex-1 overflow-hidden">
         {view === "code" ? (
-          <div className="h-full overflow-auto bg-card/50">
-            <pre className="p-6 text-sm font-mono leading-relaxed">
-              <code className="text-foreground">{content || "Select a file to view its contents"}</code>
-            </pre>
+          <div className="h-full overflow-auto bg-white dark:bg-zinc-950 no-scrollbar">
+            <div className="min-h-full font-mono text-sm">
+              {(content || "Select a file to view its contents").split("\n").map((line, i) => (
+                <div key={i} className="flex border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="w-10 py-1 text-right pr-3 select-none text-gray-400 dark:text-zinc-500 bg-gray-50/50 dark:bg-zinc-900/50 border-r border-gray-100 dark:border-white/10 flex-shrink-0">
+                    {i + 1}
+                  </div>
+                  <div className="py-1 px-4 whitespace-pre-wrap break-all min-w-0 flex-1 text-gray-800 dark:text-zinc-200 leading-relaxed">
+                    {line}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="h-full bg-card/50 flex items-center justify-center">

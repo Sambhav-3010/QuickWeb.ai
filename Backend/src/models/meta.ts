@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import type { Response } from "express";
 import { getSystemPrompt } from "../defaults/prompts";
+import type { ChatCompletionMessageParam } from "openai/resources";
 
 dotenv.config();
 
@@ -10,10 +11,10 @@ const openai = new OpenAI({
   baseURL: "https://integrate.api.nvidia.com/v1",
 });
 
-async function callAI(message: string, res: Response): Promise<void> {
+  async function callAI(message: ChatCompletionMessageParam, res: Response): Promise<void> {
   const stream = await openai.chat.completions.create({
     model: "meta/llama-3.3-70b-instruct",
-    messages: [{role: "system", content: getSystemPrompt() },{ role: "user", content: message }],
+    messages: [{role: "system", content: getSystemPrompt() }, message],
     temperature: 0.4,
     top_p: 0.7,
     max_tokens: 8000,
@@ -26,7 +27,6 @@ async function callAI(message: string, res: Response): Promise<void> {
 
     if (content) {
       res.write(content);
-      process.stdout.write(content);
     }
   }
 

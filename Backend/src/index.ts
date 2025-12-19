@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import callAI from "./models/meta.js";
 import OpenAI from "openai";
-import { BASE_PROMPT, getSystemPrompt } from "./defaults/prompts";
+import { BASE_PROMPT } from "./defaults/prompts";
 import { basePrompt as nodeBasePrompt } from "./defaults/node";
 import { basePrompt as reactBasePrompt } from "./defaults/react";
 
@@ -25,18 +25,21 @@ app.post("/template", async (req, res) => {
     messages: [
       {
         role: "system",
-        content:
-          "Return either node or react based on what do you think this project should be. Only return a single word either 'node' or 'react'. Do not return anything extra",
+        content: `Analyze the user's project request. Classify the required tech stack into exactly one of these three categories: 'react', 'node', or 'neither'.
+        Selection Criteria:
+        Return 'react' if the request is for a frontend application, UI component, or browser-based interface.
+        Return 'node' if the request is for a backend server, API, CLI tool, or filesystem-based script.
+        Return 'neither' if the request involves other stacks (like Python, Java) or is ambiguous.
+        Constraint: Output MUST be exactly one word. No punctuation, no explanation, no markdown.`,
       },
       { role: "user", content: prompt },
     ],
     temperature: 0.2,
     top_p: 0.7,
-    max_tokens: 1024,
+    max_tokens: 100,
     stream: false,
   });
   const answer = response.choices[0]?.message.content;
-
   if (answer == "react") {
     res.json({
       prompts: [
@@ -63,8 +66,8 @@ app.post("/template", async (req, res) => {
 });
 
 app.post("/chat", async (req: Request, res: Response): Promise<void> => {
-  const message = req.body.message;
-  
+  const message = req.body.messages;
+
   try {
     await callAI(message, res);
   } catch (error) {

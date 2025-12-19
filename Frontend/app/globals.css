@@ -135,27 +135,15 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(
-      135deg,
-      oklch(0.55 0.25 264),
-      oklch(0.65 0.22 300)
-    );
+    background: linear-gradient(135deg, oklch(0.55 0.25 264), oklch(0.65 0.22 300));
   }
 
   .gradient-accent {
-    background: linear-gradient(
-      135deg,
-      oklch(0.6 0.24 330),
-      oklch(0.65 0.25 264)
-    );
+    background: linear-gradient(135deg, oklch(0.6 0.24 330), oklch(0.65 0.25 264));
   }
 
   .gradient-text {
-    background: linear-gradient(
-      135deg,
-      oklch(0.55 0.25 264),
-      oklch(0.6 0.24 330)
-    );
+    background: linear-gradient(135deg, oklch(0.55 0.25 264), oklch(0.6 0.24 330));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -166,15 +154,6 @@
   }
 
   .glow-strong {
-    box-shadow: 0 0 60px oklch(0.55 0.25 264 / 0.5),
-      0 0 100px oklch(0.6 0.24 330 / 0.3);
-  }
-  .no-scrollbar::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-  }
-
-  .no-scrollbar {
-    scrollbar-width: none;
+    box-shadow: 0 0 60px oklch(0.55 0.25 264 / 0.5), 0 0 100px oklch(0.6 0.24 330 / 0.3);
   }
 }

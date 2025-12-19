@@ -1,19 +1,20 @@
 "use client"
 
-import { useState } from "react"
 import { Code, Eye } from "lucide-react"
 
 interface CodePreviewToggleProps {
   content: string
   fileName: string
   previewUrl?: string
+  view?: "code" | "preview"
+  onViewChange?: (view: "code" | "preview") => void
 }
 
-export function CodePreviewToggle({ content, fileName, previewUrl }: CodePreviewToggleProps) {
-  const [view, setView] = useState<"code" | "preview">("preview")
+export function CodePreviewToggle({ content, fileName, previewUrl, view = "preview", onViewChange }: CodePreviewToggleProps) {
+  const setView = onViewChange || (() => { })
 
   return (
-    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm overflow-hidden">
+    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm">
       <div className="h-12 border-b border-border/50 px-4 flex items-center justify-between glass-strong">
         <span className="text-sm font-semibold text-foreground">
           {view === "code" ? fileName || "No file selected" : "Preview"}
@@ -21,20 +22,18 @@ export function CodePreviewToggle({ content, fileName, previewUrl }: CodePreview
         <div className="flex items-center gap-2 glass rounded-lg p-1">
           <button
             onClick={() => setView("preview")}
-            className={`p-2 rounded-md transition-all ${
-              view === "preview"
-                ? "bg-primary text-primary-foreground glow"
-                : "hover:bg-accent/50 text-muted-foreground"
-            }`}
+            className={`p-2 rounded-md transition-all ${view === "preview"
+              ? "bg-primary text-primary-foreground glow"
+              : "hover:bg-accent/50 text-muted-foreground"
+              }`}
             title="Preview"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => setView("code")}
-            className={`p-2 rounded-md transition-all ${
-              view === "code" ? "bg-primary text-primary-foreground glow" : "hover:bg-accent/50 text-muted-foreground"
-            }`}
+            className={`p-2 rounded-md transition-all ${view === "code" ? "bg-primary text-primary-foreground glow" : "hover:bg-accent/50 text-muted-foreground"
+              }`}
             title="Code"
           >
             <Code className="w-4 h-4" />
@@ -44,13 +43,13 @@ export function CodePreviewToggle({ content, fileName, previewUrl }: CodePreview
 
       <div className="flex-1 overflow-hidden">
         {view === "code" ? (
-          <div className="h-full overflow-auto bg-card/50 no-scrollbar">
+          <div className="h-full overflow-auto bg-card/50">
             <pre className="p-6 text-sm font-mono leading-relaxed">
               <code className="text-foreground">{content || "Select a file to view its contents"}</code>
             </pre>
           </div>
         ) : (
-          <div className="h-full bg-card/50 flex items-center justify-center overflow-hidden">
+          <div className="h-full bg-card/50 flex items-center justify-center">
             {previewUrl ? (
               <iframe src={previewUrl} className="w-full h-full border-0" title="Preview" />
             ) : (

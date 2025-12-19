@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Circle, Loader2, Sparkles } from "lucide-react";
-import type { Step } from "@/types";
+import { Step, StepType } from "@/types";
 
 interface PromptPanelProps {
   onGenerate: (prompt: string) => void;
@@ -22,24 +22,33 @@ export function PromptPanel({
   const originalPrompt =
     typeof window !== "undefined"
       ? JSON.parse(sessionStorage.getItem("generatedProject") || "{}")?.prompt ??
-        "No prompt available"
+      "No prompt available"
       : "Loading...";
 
   return (
-    <div className="w-[18%] border-r border-border/50 flex flex-col bg-card/30 overflow-hidden">
+    <div className="w-[20%] border-r border-border/50 flex flex-col bg-card/30 overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar p-4">
         <h3 className="font-semibold text-sm uppercase mb-4">Build Steps</h3>
 
         {buildSteps.map((step, index) => (
-          <div key={index} className="flex gap-3 p-3 rounded-lg">
-            {step.status === "completed" ? (
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-            ) : step.status === "in-progress" ? (
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            ) : (
-              <Circle className="w-5 h-5 text-muted-foreground" />
-            )}
-            <span className="text-sm">{step.title}</span>
+          <div key={index} className="flex gap-3 p-3 rounded-lg items-center justify-center">
+            <div className="mt-1">
+              {step.status === "completed" ? (
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+              ) : step.status === "in-progress" ? (
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              ) : (
+                <Circle className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex flex-col gap-1 min-w-0 w-full">
+              <span className="text-sm font-medium">{step.title}</span>
+              {step.code && (step.type === StepType.RunScript || !step.path) && (
+                <div className="bg-black/50 text-xs font-mono p-2 rounded text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all">
+                  {step.code}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

@@ -16,7 +16,6 @@ import { useRouter } from "next/navigation";
 export default function PromptPage() {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [steps, setSteps] = useState<Step[]>([]);
   const router = useRouter();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL as string;
 
@@ -36,34 +35,21 @@ export default function PromptPage() {
 
       const initialSteps: Step[] = parseXml(uiPrompts[0]).map((step: Step) => ({
         ...step,
-        status: "pending" as const,
+        status: "completed" as const,
       }));
 
-      const chatRes = await axios.post(
-        `${BACKEND_URL}/chat`,
-        {
-          messages: [...prompts, prompt].map((content: string) => ({
-            role: "user",
-            content,
-          })),
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
 
-      const generatedSteps: Step[] = parseXml(chatRes.data).map(
-        (step: Step) => ({
-          ...step,
-          status: "pending" as const,
-        })
-      );
-      const allSteps = [...initialSteps, ...generatedSteps];
-      console.log(allSteps);
-      setSteps(allSteps);
-      localStorage.setItem("generatedSteps", JSON.stringify(allSteps));
+      localStorage.setItem("generationRequest", JSON.stringify({
+        prompt,
+        prompts: [...prompts, prompt],
+        initialSteps
+      }));
+
+      localStorage.removeItem("generatedSteps");
+
       router.push("/generate");
     } catch (error) {
       console.error("Generation failed:", error);
-    } finally {
       setIsGenerating(false);
     }
   };

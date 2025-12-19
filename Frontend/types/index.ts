@@ -1,26 +1,37 @@
-export interface FileNode {
-  name: string
-  path: string
-  type: "file" | "folder"
-  children?: FileNode[]
+export enum StepType {
+  CreateFile,
+  CreateFolder,
+  EditFile,
+  DeleteFile,
+  RunScript
 }
 
-export interface FileContent {
-  path: string
-  content: string
+export interface Step {
+  id: number;
+  title: string;
+  description: string;
+  type: StepType;
+  status: 'pending' | 'in-progress' | 'completed';
+  code?: string;
+  path?: string;
 }
 
-export interface BuildStep {
-  name: string
-  status: "pending" | "in-progress" | "completed"
+export interface Project {
+  prompt: string;
+  steps: Step[];
+  fileTree: FileItem[];
+  previewUrl: string;
 }
 
-export interface GeneratedProject {
-  prompt: string
-  fileTree: FileNode[]
-  files: FileContent[]
-  buildSteps: BuildStep[]
-  previewUrl?: string
+export interface FileItem {
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileItem[];
+  content?: string;
+  path: string;
 }
 
-
+export interface FileViewerProps {
+  file: FileItem | null;
+  onClose: () => void;
+}

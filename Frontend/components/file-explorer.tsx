@@ -3,10 +3,10 @@
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import type { FileNode } from "@/types"
+import type { FileItem } from "@/types"
 
 interface FileExplorerProps {
-  files: FileNode[]
+  files: FileItem[]
   selectedFile: string | null
   onSelectFile: (path: string) => void
 }
@@ -37,7 +37,7 @@ function FileTree({
   onSelectFile,
   depth = 0,
 }: {
-  nodes: FileNode[]
+  nodes: FileItem[]
   selectedFile: string | null
   onSelectFile: (path: string) => void
   depth?: number
@@ -63,7 +63,7 @@ function FileTreeNode({
   onSelectFile,
   depth,
 }: {
-  node: FileNode
+  node: FileItem
   selectedFile: string | null
   onSelectFile: (path: string) => void
   depth: number

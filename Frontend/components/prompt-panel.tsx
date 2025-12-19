@@ -26,8 +26,8 @@ export function PromptPanel({
       : "Loading...";
 
   return (
-    <div className="w-[25%] border-r border-border/50 flex flex-col bg-card/30">
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="w-[18%] border-r border-border/50 flex flex-col bg-card/30 overflow-hidden">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4">
         <h3 className="font-semibold text-sm uppercase mb-4">Build Steps</h3>
 
         {buildSteps.map((step, index) => (

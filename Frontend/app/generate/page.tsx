@@ -47,7 +47,7 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header />
 
       <div className="flex-1 flex overflow-hidden">

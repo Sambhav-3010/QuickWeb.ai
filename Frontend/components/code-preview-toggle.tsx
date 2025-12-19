@@ -13,7 +13,7 @@ export function CodePreviewToggle({ content, fileName, previewUrl }: CodePreview
   const [view, setView] = useState<"code" | "preview">("preview")
 
   return (
-    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm">
+    <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm overflow-hidden">
       <div className="h-12 border-b border-border/50 px-4 flex items-center justify-between glass-strong">
         <span className="text-sm font-semibold text-foreground">
           {view === "code" ? fileName || "No file selected" : "Preview"}
@@ -44,13 +44,13 @@ export function CodePreviewToggle({ content, fileName, previewUrl }: CodePreview
 
       <div className="flex-1 overflow-hidden">
         {view === "code" ? (
-          <div className="h-full overflow-auto bg-card/50">
+          <div className="h-full overflow-auto bg-card/50 no-scrollbar">
             <pre className="p-6 text-sm font-mono leading-relaxed">
               <code className="text-foreground">{content || "Select a file to view its contents"}</code>
             </pre>
           </div>
         ) : (
-          <div className="h-full bg-card/50 flex items-center justify-center">
+          <div className="h-full bg-card/50 flex items-center justify-center overflow-hidden">
             {previewUrl ? (
               <iframe src={previewUrl} className="w-full h-full border-0" title="Preview" />
             ) : (

@@ -13,11 +13,11 @@ interface FileExplorerProps {
 
 export function FileExplorer({ files, selectedFile, onSelectFile }: FileExplorerProps) {
   return (
-    <div className="w-[25%] border-r border-border/50 flex flex-col bg-card/30 backdrop-blur-sm">
+    <div className="w-[18%] border-r border-border/50 flex flex-col bg-card/30 backdrop-blur-sm overflow-hidden">
       <div className="p-4 border-b border-border/50">
         <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Files</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-2">
         {files.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             <p>No files yet.</p>

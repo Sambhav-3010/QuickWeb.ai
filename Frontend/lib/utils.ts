@@ -31,6 +31,8 @@ export function buildFileTreeFromSteps(steps: Step[]): FileItem[] {
           children: isFile ? undefined : [],
         };
         current.push(node);
+      } else if (isFile) {
+        node.content = step.code;
       }
 
       if (!isFile) current = node.children!;

@@ -29,6 +29,7 @@ export default function GeneratePage() {
   const [logs, setLogs] = useState<string[]>([]);
 
   const hasStartedRef = useRef(false);
+  const hasMountedFsRef = useRef(false);
   const hasDevStartedRef = useRef(false);
   const lastActiveFileRef = useRef<string | null>(null);
 
@@ -42,7 +43,6 @@ export default function GeneratePage() {
     if (rawSteps) {
       const steps: Step[] = JSON.parse(rawSteps);
       const fileTree = buildFileTreeFromSteps(steps);
-      const firstFile = findFirstFile(fileTree);
 
       setProject({
         prompt: "Generated Project",
@@ -51,10 +51,9 @@ export default function GeneratePage() {
         previewUrl: "",
       });
 
-      if (firstFile) {
-        setSelectedFile(firstFile);
-        setView("code");
-      }
+      const firstFile = findFirstFile(fileTree);
+      if (firstFile) setSelectedFile(firstFile);
+
       return;
     }
 
@@ -73,11 +72,10 @@ export default function GeneratePage() {
     });
 
     setIsGenerating(true);
-    setView("code");
 
     const streamGeneration = async () => {
       try {
-        const response = await fetch(
+        const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
           {
             method: "POST",
@@ -91,9 +89,9 @@ export default function GeneratePage() {
           }
         );
 
-        if (!response.body) throw new Error("No response body");
+        if (!res.body) throw new Error("No response body");
 
-        const reader = response.body.getReader();
+        const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let accumulated = "";
 
@@ -103,15 +101,14 @@ export default function GeneratePage() {
 
           accumulated += decoder.decode(value, { stream: true });
           const newSteps = parseXml(accumulated);
-
           const allSteps = [...initialSteps, ...newSteps];
           const fileTree = buildFileTreeFromSteps(allSteps);
 
-          setProject((prev) =>
-            prev ? { ...prev, steps: allSteps, fileTree } : prev
+          setProject((p) =>
+            p ? { ...p, steps: allSteps, fileTree } : p
           );
 
-          const activeStep = [...newSteps].reverse().find((s) => s.path);
+          const activeStep = [...newSteps].reverse().find(s => s.path);
           if (
             activeStep?.path &&
             activeStep.path !== lastActiveFileRef.current
@@ -130,8 +127,8 @@ export default function GeneratePage() {
           JSON.stringify([...initialSteps, ...parseXml(accumulated)])
         );
         localStorage.removeItem("generationRequest");
-      } catch (err) {
-        console.error("Streaming error:", err);
+      } catch (e) {
+        console.error(e);
       } finally {
         setIsGenerating(false);
       }
@@ -140,50 +137,52 @@ export default function GeneratePage() {
     streamGeneration();
   }, [router]);
 
+
   useEffect(() => {
     if (!webcontainer || !project?.fileTree.length) return;
-    if (hasDevStartedRef.current) return;
+    if (hasMountedFsRef.current) return;
 
     const container: WebContainer = webcontainer;
+    hasMountedFsRef.current = true;
+    hasDevStartedRef.current = true;
 
-    const bootAndStart = async () => {
-      hasDevStartedRef.current = true;
-
-      setLogs((l) => [...l, "Booting WebContainer...\n"]);
+    const boot = async () => {
+      setLogs(l => [...l, "Mounting filesystem...\n"]);
 
       await container.mount(
         convertToFileSystemTree(project.fileTree)
       );
 
-      setLogs((l) => [...l, "Installing dependencies...\n"]);
+      setLogs(l => [...l, "Installing dependencies...\n"]);
       const install = await container.spawn("npm", ["install"]);
       install.output.pipeTo(
         new WritableStream({
           write(data) {
-            setLogs((l) => [...l, data]);
+            setLogs(l => [...l, data]);
           },
         })
       );
       await install.exit;
 
-      setLogs((l) => [...l, "Starting dev server...\n"]);
+      setLogs(l => [...l, "Starting dev server...\n"]);
       const dev = await container.spawn("npm", ["run", "dev"]);
       dev.output.pipeTo(
         new WritableStream({
           write(data) {
-            setLogs((l) => [...l, data]);
+            setLogs(l => [...l, data]);
           },
         })
       );
 
       container.on("server-ready", (_, url) => {
         setPreviewUrl(url);
-        setProject((p) => (p ? { ...p, previewUrl: url } : p));
+        setProject(p => (p ? { ...p, previewUrl: url } : p));
       });
     };
 
-    bootAndStart().catch(console.error);
-  }, [webcontainer, project?.fileTree]);
+    boot().catch(console.error);
+  }, [webcontainer]);
+
 
   useEffect(() => {
     if (!webcontainer || !project?.fileTree.length) return;
@@ -206,14 +205,13 @@ export default function GeneratePage() {
       }
     };
 
-    const sync = async () => {
+    (async () => {
       for (const node of project.fileTree) {
         await writeNode(node);
       }
-    };
+    })().catch(console.error);
+  }, [project?.fileTree]);
 
-    sync().catch(console.error);
-  }, [project?.fileTree, webcontainer]);
 
   if (!project || isLoading) {
     return (
@@ -231,14 +229,12 @@ export default function GeneratePage() {
   return (
     <div className="h-screen flex flex-col">
       <Header />
-
       <div className="flex-1 flex overflow-hidden">
         <PromptPanel
           onGenerate={() => { }}
           buildSteps={project.steps}
           isGenerating={isGenerating}
         />
-
         <FileExplorer
           files={project.fileTree}
           selectedFile={selectedFile?.path ?? null}
@@ -250,7 +246,6 @@ export default function GeneratePage() {
             }
           }}
         />
-
         <CodePreviewToggle
           content={selectedFile?.content ?? ""}
           fileName={selectedFile?.name ?? ""}

@@ -32,6 +32,88 @@ export default function GeneratePage() {
   const hasMountedFsRef = useRef(false);
   const hasDevStartedRef = useRef(false);
   const lastActiveFileRef = useRef<string | null>(null);
+  const lastPackageJsonRef = useRef<string | null>(null);
+  const fullGeneratedCodeRef = useRef<string>("");
+  const generationRequestRef = useRef<any>(null);
+
+  const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = []) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages }),
+        }
+      );
+
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        accumulated += decoder.decode(value, { stream: true });
+        const newSteps = parseXml(accumulated);
+        const allSteps = [...baseSteps, ...newSteps];
+        const fileTree = buildFileTreeFromSteps(allSteps);
+
+        setProject((prev) => {
+          if (!prev) return undefined;
+          return { ...prev, steps: allSteps, fileTree };
+        });
+
+        const activeStep = [...newSteps].reverse().find(s => s.path);
+        if (
+          activeStep?.path &&
+          activeStep.path !== lastActiveFileRef.current
+        ) {
+          const file = findFileByPath(fileTree, activeStep.path);
+          if (file) {
+            setSelectedFile(file);
+            lastActiveFileRef.current = activeStep.path;
+            setView("code");
+          }
+        }
+      }
+
+      fullGeneratedCodeRef.current = accumulated;
+
+      if (!isRegeneration) {
+        const currentSteps = generationRequestRef.current?.initialSteps || [];
+        localStorage.setItem(
+          "generatedSteps",
+          JSON.stringify([...currentSteps, ...parseXml(accumulated)])
+        );
+        localStorage.removeItem("generationRequest");
+      }
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRegenerate = async (newPrompt: string) => {
+    const requestJson = localStorage.getItem("generationRequest");
+    const { prompts } = requestJson ? JSON.parse(requestJson) : (generationRequestRef.current || { prompts: [] });
+
+    const messages = [
+      ...prompts.map((content: string) => ({ role: "user", content })),
+      { role: "assistant", content: fullGeneratedCodeRef.current },
+      { role: "user", content: `Here is the new request to update the project: ${newPrompt}. Please regenerate or update the code accordingly. Return the full updated code structure.` }
+    ];
+
+    setIsGenerating(true);
+    setView("code");
+
+    await performGeneration(messages, true, project?.steps || []);
+  };
 
   useEffect(() => {
     if (hasStartedRef.current) return;
@@ -53,7 +135,6 @@ export default function GeneratePage() {
 
       const firstFile = findFirstFile(fileTree);
       if (firstFile) setSelectedFile(firstFile);
-
       return;
     }
 
@@ -62,7 +143,9 @@ export default function GeneratePage() {
       return;
     }
 
-    const { prompt, prompts, initialSteps } = JSON.parse(requestJson);
+    const parsed = JSON.parse(requestJson);
+    generationRequestRef.current = parsed;
+    const { prompt, prompts, initialSteps } = parsed;
 
     setProject({
       prompt,
@@ -73,76 +156,25 @@ export default function GeneratePage() {
 
     setIsGenerating(true);
 
-    const streamGeneration = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messages: prompts.map((content: string) => ({
-                role: "user",
-                content,
-              })),
-            }),
-          }
-        );
+    const messages = prompts.map((content: string) => ({
+      role: "user",
+      content,
+    }));
+    performGeneration(messages, false, initialSteps);
 
-        if (!res.body) throw new Error("No response body");
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulated = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          accumulated += decoder.decode(value, { stream: true });
-          const newSteps = parseXml(accumulated);
-          const allSteps = [...initialSteps, ...newSteps];
-          const fileTree = buildFileTreeFromSteps(allSteps);
-
-          setProject((p) =>
-            p ? { ...p, steps: allSteps, fileTree } : p
-          );
-
-          const activeStep = [...newSteps].reverse().find(s => s.path);
-          if (
-            activeStep?.path &&
-            activeStep.path !== lastActiveFileRef.current
-          ) {
-            const file = findFileByPath(fileTree, activeStep.path);
-            if (file) {
-              setSelectedFile(file);
-              setView("code");
-              lastActiveFileRef.current = activeStep.path;
-            }
-          }
-        }
-
-        localStorage.setItem(
-          "generatedSteps",
-          JSON.stringify([...initialSteps, ...parseXml(accumulated)])
-        );
-        localStorage.removeItem("generationRequest");
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsGenerating(false);
-      }
-    };
-
-    streamGeneration();
   }, [router]);
+
+  useEffect(() => {
+    if (!isGenerating && hasStartedRef.current) {
+      setView("preview");
+    }
+  }, [isGenerating]);
 
 
   useEffect(() => {
     if (!webcontainer || !project?.fileTree.length) return;
+    if (isGenerating) return;
     if (hasMountedFsRef.current) return;
-
-    // Wait for package.json before booting
     const hasPackageJson = project.fileTree.some(f => f.name === "package.json");
     if (!hasPackageJson) return;
 
@@ -157,6 +189,11 @@ export default function GeneratePage() {
         convertToFileSystemTree(project.fileTree)
       );
 
+      const pkg = project.fileTree.find((f) => f.name === "package.json");
+      if (pkg?.content) {
+        lastPackageJsonRef.current = pkg.content;
+      }
+
       setLogs(l => [...l, "Installing dependencies...\n"]);
       const install = await container.spawn("npm", ["install"]);
       install.output.pipeTo(
@@ -166,7 +203,12 @@ export default function GeneratePage() {
           },
         })
       );
-      await install.exit;
+      const exitCode = await install.exit;
+      if (exitCode !== 0) {
+        setLogs(l => [...l, "Installation failed. Triggering auto-regeneration...\n"]);
+        handleRegenerate("The previous dependency installation failed. Please review the package.json and fix any conflicting or missing dependencies.");
+        return;
+      }
 
       setLogs(l => [...l, "Starting dev server...\n"]);
       const dev = await container.spawn("npm", ["run", "dev"]);
@@ -185,7 +227,7 @@ export default function GeneratePage() {
     };
 
     boot().catch(console.error);
-  }, [webcontainer, project?.fileTree]);
+  }, [webcontainer, project?.fileTree, isGenerating]);
 
 
   useEffect(() => {
@@ -212,6 +254,28 @@ export default function GeneratePage() {
     (async () => {
       for (const node of project.fileTree) {
         await writeNode(node);
+      }
+
+      const pkg = project.fileTree.find((f) => f.name === "package.json");
+      if (pkg?.content && lastPackageJsonRef.current !== null && pkg.content !== lastPackageJsonRef.current) {
+        lastPackageJsonRef.current = pkg.content;
+        setLogs(l => [...l, "package.json changed. Re-installing dependencies...\n"]);
+
+        try {
+          const install = await container.spawn("npm", ["install"]);
+          install.output.pipeTo(
+            new WritableStream({
+              write(data) {
+                setLogs(l => [...l, data]);
+              },
+            })
+          );
+          await install.exit;
+          setLogs(l => [...l, "Dependencies installed.\n"]);
+        } catch (error) {
+          console.error("Failed to install dependencies", error);
+          setLogs(l => [...l, "Failed to install dependencies.\n"]);
+        }
       }
     })().catch(console.error);
   }, [project?.fileTree]);
@@ -270,7 +334,7 @@ export default function GeneratePage() {
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <PromptPanel
-          onGenerate={() => { }}
+          onGenerate={handleRegenerate}
           buildSteps={project.steps}
           isGenerating={isGenerating}
         />

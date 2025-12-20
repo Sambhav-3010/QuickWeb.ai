@@ -68,7 +68,7 @@ export function parseXml(response: string): Step[] {
         title: `Create ${filePath || 'file'}`,
         description: '',
         type: StepType.CreateFile,
-        status: 'pending',
+        status: 'in-progress',
         // Don't trim end of streaming content to preserve typing flow
         code: content.replace(/^\n/, ''),
         path: filePath
@@ -79,7 +79,7 @@ export function parseXml(response: string): Step[] {
         title: 'Run command',
         description: '',
         type: StepType.RunScript,
-        status: 'pending',
+        status: 'in-progress',
         code: content.replace(/^\n/, '')
       });
     }

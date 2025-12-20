@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Circle, Loader2, Sparkles } from "lucide-react";
@@ -18,6 +18,16 @@ export function PromptPanel({
   isGenerating,
 }: PromptPanelProps) {
   const [prompt, setPrompt] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [buildSteps]);
 
   const originalPrompt =
     typeof window !== "undefined"
@@ -27,16 +37,16 @@ export function PromptPanel({
 
   return (
     <div className="w-[20%] shrink-0 border-r border-border/50 flex flex-col bg-card/30 overflow-hidden">
-      <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4" ref={scrollRef}>
         <h3 className="font-semibold text-sm uppercase mb-4">Build Steps</h3>
 
         {buildSteps.map((step, index) => (
           <div key={index} className="flex gap-3 p-3 rounded-lg items-center justify-center">
             <div className="mt-1">
-              {step.status === "completed" || index === 0 || step.description === "" ? (
-                <CheckCircle2 className="w-5 h-5 text-primary" />
-              ) : step.status === "in-progress" ? (
+              {step.status === "in-progress" ? (
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              ) : step.status === "completed" || index === 0 || step.description === "" ? (
+                <CheckCircle2 className="w-5 h-5 text-primary" />
               ) : (
                 <Circle className="w-5 h-5 text-muted-foreground" />
               )}
@@ -70,9 +80,9 @@ export function PromptPanel({
           className="w-full"
         >
           <Sparkles className="w-4 h-4 mr-2" />
-          Generate
+          Regenerate
         </Button>
       </div>
-    </div>
+    </div >
   );
 }

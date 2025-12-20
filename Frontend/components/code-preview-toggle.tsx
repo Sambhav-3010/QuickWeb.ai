@@ -1,6 +1,8 @@
 "use client";
 
 import { Code, Eye } from "lucide-react";
+import { TerminalPanel } from "./terminal-panel";
+import { useEffect, useState } from "react";
 
 interface CodePreviewToggleProps {
   content: string;
@@ -8,6 +10,7 @@ interface CodePreviewToggleProps {
   previewUrl?: string;
   view?: "code" | "preview";
   onViewChange?: (view: "code" | "preview") => void;
+  logs: string[];
 }
 
 export function CodePreviewToggle({
@@ -16,8 +19,17 @@ export function CodePreviewToggle({
   previewUrl,
   view = "preview",
   onViewChange,
+  logs,
 }: CodePreviewToggleProps) {
-  const setView = onViewChange || (() => {});
+  const setView = onViewChange || (() => { });
+  const [terminalOpen, setTerminalOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (previewUrl) {
+      setTerminalOpen(false);
+      console.log(previewUrl)
+    }
+  }, [previewUrl])
 
   return (
     <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm max-w-[62%]">
@@ -28,22 +40,20 @@ export function CodePreviewToggle({
         <div className="flex items-center gap-2 glass rounded-lg p-1">
           <button
             onClick={() => setView("preview")}
-            className={`p-2 rounded-md transition-all ${
-              view === "preview"
-                ? "bg-primary text-primary-foreground glow"
-                : "hover:bg-accent/50 text-muted-foreground"
-            }`}
+            className={`p-2 rounded-md transition-all ${view === "preview"
+              ? "bg-primary text-primary-foreground glow"
+              : "hover:bg-accent/50 text-muted-foreground"
+              }`}
             title="Preview"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => setView("code")}
-            className={`p-2 rounded-md transition-all ${
-              view === "code"
-                ? "bg-primary text-primary-foreground glow"
-                : "hover:bg-accent/50 text-muted-foreground"
-            }`}
+            className={`p-2 rounded-md transition-all ${view === "code"
+              ? "bg-primary text-primary-foreground glow"
+              : "hover:bg-accent/50 text-muted-foreground"
+              }`}
             title="Code"
           >
             <Code className="w-4 h-4" />
@@ -74,7 +84,9 @@ export function CodePreviewToggle({
           </div>
         ) : (
           <div className="h-full bg-card/50 flex items-center justify-center">
-            {previewUrl ? (
+            {logs.length > 0 && terminalOpen ? (
+              <TerminalPanel logs={logs} />
+            ) : previewUrl && !terminalOpen ? (
               <iframe
                 src={previewUrl}
                 className="w-full h-full border-0"

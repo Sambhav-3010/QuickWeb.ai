@@ -1,18 +1,31 @@
+import { useEffect, useState, useRef } from "react";
 import { WebContainer } from "@webcontainer/api";
-import { useEffect, useState } from "react";
-const useWebContainers = async () => {
 
-    const [webContainers ,setWebContainers] = useState<WebContainer>();
-    async function main() {
-        const webcontainerInstance = await WebContainer.boot();
-        setWebContainers(webcontainerInstance);
-    }
+export const useWebContainer = () => {
+    const [webcontainer, setWebcontainer] = useState<WebContainer | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
 
-    useEffect(()=>{
-        main();
-    },[])
+    const bootStartedRef = useRef(false);
 
-    return webContainers;
+    useEffect(() => {
+        async function boot() {
+            if (bootStartedRef.current) return;
+            bootStartedRef.current = true;
+
+            try {
+                const instance = await WebContainer.boot();
+                setWebcontainer(instance);
+                setIsLoading(false);
+            } catch (err) {
+                console.error("Failed to boot WebContainer:", err);
+                setError(err as Error);
+                setIsLoading(false);
+            }
+        }
+
+        boot();
+    }, []);
+
+    return { webcontainer, isLoading, error };
 }
-
-export default useWebContainers

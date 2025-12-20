@@ -60,3 +60,32 @@ export function findFileByPath(nodes: FileItem[], path: string): FileItem | null
   }
   return null;
 }
+
+
+export function convertToFileSystemTree(files: any[]): any {
+  const tree: any = {};
+  
+  files.forEach(file => {
+      const parts = file.path.split('/');
+      let current = tree;
+      
+      for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          const isFile = i === parts.length - 1;
+          
+          if (isFile) {
+              current[part] = {
+                  file: { contents: file.content }
+              };
+          } else {
+              if (!current[part]) {
+                  current[part] = { directory: {} };
+              }
+              current = current[part].directory;
+          }
+      }
+  });
+
+
+  return tree;
+}

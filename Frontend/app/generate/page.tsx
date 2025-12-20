@@ -9,16 +9,64 @@ import { CodePreviewToggle } from "@/components/code-preview-toggle";
 import type { Project, Step, FileItem } from "@/types";
 import { buildFileTreeFromSteps, findFileByPath, findFirstFile } from "@/lib/utils";
 import { parseXml } from "@/lib/steps";
+import { useWebContainer } from "@/hooks/useWebContainers";
+import { convertToFileSystemTree } from "@/lib/utils";
 
 export default function GeneratePage() {
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<Project>();
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [view, setView] = useState<"code" | "preview">("code");
   const router = useRouter();
   const hasStartedRef = useRef(false);
   const lastActiveFileRef = useRef<string | null>(null);
+  const { webcontainer, isLoading } = useWebContainer();
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [logs, setLogs] = useState<string[]>([]);
 
+  useEffect(() => {
+
+    if (!webcontainer || !project?.fileTree || previewUrl) return;
+
+    async function startContainer() {
+      setLogs(prev => [...prev, "Starting WebContainer...\n"]);
+      setLogs(prev => [...prev, "Mounting files...\n"]);
+      const fileSystemTree = convertToFileSystemTree(project!.fileTree);
+      await webcontainer?.mount(fileSystemTree);
+      setLogs(prev => [...prev, "Running npm install...\n"]);
+      const installProcess = await webcontainer?.spawn('npm', ['install']);
+
+      installProcess?.output.pipeTo(new WritableStream({
+        write(data) {
+          setLogs(prev => [...prev, data]);
+        }
+      }));
+
+      const installExitCode = await installProcess?.exit;
+      if (installExitCode !== 0) {
+        setLogs(prev => [...prev, "\nInstallation failed! Check logs above.\n"]);
+        return;
+      }
+
+      setLogs(prev => [...prev, "\nInstallation complete.\nStarting dev server...\n"]);
+      const devProcess = await webcontainer?.spawn('npm', ['run', 'dev']);
+
+      devProcess?.output.pipeTo(new WritableStream({
+        write(data) {
+          setLogs(prev => [...prev, data]);
+        }
+      }));
+
+      webcontainer?.on('server-ready', (port, url) => {
+        setLogs(prev => [...prev, `\nServer ready at: ${url}\n`]);
+        setPreviewUrl(url);
+
+        setProject(prev => prev ? { ...prev, previewUrl: url } : undefined);
+      });
+    }
+
+    startContainer();
+  }, [webcontainer, project?.fileTree, previewUrl]);
   useEffect(() => {
     if (hasStartedRef.current) return;
 
@@ -91,7 +139,7 @@ export default function GeneratePage() {
             const activeFilePath = activeStep?.path;
 
             setProject((prev) => {
-              if (!prev) return null;
+              if (!prev) return undefined;
               return {
                 ...prev,
                 steps: allSteps,
@@ -169,8 +217,9 @@ export default function GeneratePage() {
         <CodePreviewToggle
           content={selectedFile?.content ?? ""}
           fileName={selectedFile?.name ?? ""}
-          previewUrl={project.previewUrl}
+          previewUrl={previewUrl}
           view={view}
+          logs={logs}
           onViewChange={setView}
         />
       </div>

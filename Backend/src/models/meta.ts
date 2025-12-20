@@ -24,7 +24,7 @@ async function callAI(messages: ChatMessage[], res: Response): Promise<void> {
     },
   ];
   const stream = await openai.chat.completions.create({
-    model: "meta/llama-3.3-70b-instruct",
+    model: "qwen/qwen2.5-coder-32b-instruct",
     messages: input,
     temperature: 0.4,
     top_p: 0.7,

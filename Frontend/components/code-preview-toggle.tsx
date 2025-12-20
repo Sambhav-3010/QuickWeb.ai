@@ -1,8 +1,7 @@
-"use client";
-
 import { Code, Eye } from "lucide-react";
 import { TerminalPanel } from "./terminal-panel";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import Editor from "@monaco-editor/react";
 
 interface CodePreviewToggleProps {
   content: string;
@@ -10,7 +9,9 @@ interface CodePreviewToggleProps {
   previewUrl?: string;
   view?: "code" | "preview";
   onViewChange?: (view: "code" | "preview") => void;
+  onEditorChange?: (value: string | undefined) => void;
   logs: string[];
+  isGenerating?: boolean;
 }
 
 export function CodePreviewToggle({
@@ -19,17 +20,38 @@ export function CodePreviewToggle({
   previewUrl,
   view = "preview",
   onViewChange,
+  onEditorChange,
   logs,
+  isGenerating,
 }: CodePreviewToggleProps) {
   const setView = onViewChange || (() => { });
   const [terminalOpen, setTerminalOpen] = useState<boolean>(true);
+  const [editor, setEditor] = useState<any>(null);
 
   useEffect(() => {
     if (previewUrl) {
       setTerminalOpen(false);
-      console.log(previewUrl)
     }
   }, [previewUrl])
+
+  useEffect(() => {
+    if (isGenerating && editor && view === 'code') {
+      const model = editor.getModel();
+      if (model) {
+        editor.revealLine(model.getLineCount());
+      }
+    }
+  }, [content, isGenerating, editor, view]);
+
+  const language = useMemo(() => {
+    if (!fileName) return "plaintext";
+    if (fileName.endsWith(".tsx") || fileName.endsWith(".ts")) return "typescript";
+    if (fileName.endsWith(".jsx") || fileName.endsWith(".js")) return "javascript";
+    if (fileName.endsWith(".css")) return "css";
+    if (fileName.endsWith(".html")) return "html";
+    if (fileName.endsWith(".json")) return "json";
+    return "plaintext";
+  }, [fileName]);
 
   return (
     <div className="flex-1 border-l border-border/50 flex flex-col bg-card/30 backdrop-blur-sm max-w-[62%]">
@@ -63,24 +85,23 @@ export function CodePreviewToggle({
 
       <div className="flex-1 overflow-hidden">
         {view === "code" ? (
-          <div className="h-full overflow-auto bg-white dark:bg-zinc-950 no-scrollbar">
-            <div className="min-h-full font-mono text-sm">
-              {(content || "Select a file to view its contents")
-                .split("\n")
-                .map((line, i) => (
-                  <div
-                    key={i}
-                    className="flex border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                  >
-                    <div className="w-10 py-1 text-right pr-3 select-none text-gray-400 dark:text-zinc-500 bg-gray-50/50 dark:bg-zinc-900/50 border-r border-gray-100 dark:border-white/10 flex-shrink-0">
-                      {i + 1}
-                    </div>
-                    <div className="py-1 px-4 whitespace-pre-wrap break-all min-w-0 flex-1 text-gray-800 dark:text-zinc-200 leading-relaxed">
-                      {line}
-                    </div>
-                  </div>
-                ))}
-            </div>
+          <div className="h-full relative">
+            <Editor
+              height="100%"
+              language={language}
+              theme="vs-dark"
+              value={content}
+              onChange={onEditorChange}
+              onMount={(editor) => setEditor(editor)}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                wordWrap: "on",
+                scrollBeyondLastLine: false,
+                readOnly: false,
+                automaticLayout: true,
+              }}
+            />
           </div>
         ) : (
           <div className="h-full bg-card/50 flex items-center justify-center">

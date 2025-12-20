@@ -142,6 +142,10 @@ export default function GeneratePage() {
     if (!webcontainer || !project?.fileTree.length) return;
     if (hasMountedFsRef.current) return;
 
+    // Wait for package.json before booting
+    const hasPackageJson = project.fileTree.some(f => f.name === "package.json");
+    if (!hasPackageJson) return;
+
     const container: WebContainer = webcontainer;
     hasMountedFsRef.current = true;
     hasDevStartedRef.current = true;
@@ -181,7 +185,7 @@ export default function GeneratePage() {
     };
 
     boot().catch(console.error);
-  }, [webcontainer]);
+  }, [webcontainer, project?.fileTree]);
 
 
   useEffect(() => {
@@ -212,6 +216,41 @@ export default function GeneratePage() {
     })().catch(console.error);
   }, [project?.fileTree]);
 
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (value === undefined || !selectedFile || !project) return;
+    setSelectedFile(prev => prev ? { ...prev, content: value } : null);
+
+    setProject(prev => {
+      if (!prev) return prev;
+
+      const updateTree = (nodes: FileItem[]): FileItem[] => {
+        return nodes.map(node => {
+          if (node.type === 'folder' && node.children) {
+            return { ...node, children: updateTree(node.children) };
+          }
+          if (node.path === selectedFile.path) {
+            return { ...node, content: value };
+          }
+          return node;
+        });
+      };
+
+      return {
+        ...prev,
+        fileTree: updateTree(prev.fileTree)
+      };
+    });
+  };
+
+  useEffect(() => {
+    if (!project || !selectedFile) return;
+
+    const updatedFile = findFileByPath(project.fileTree, selectedFile.path);
+    if (updatedFile && updatedFile.content !== selectedFile.content) {
+      setSelectedFile(updatedFile);
+    }
+  }, [project?.fileTree, selectedFile?.path]);
 
   if (!project || isLoading) {
     return (
@@ -252,7 +291,9 @@ export default function GeneratePage() {
           previewUrl={previewUrl}
           view={view}
           logs={logs}
+          isGenerating={isGenerating}
           onViewChange={setView}
+          onEditorChange={handleEditorChange}
         />
       </div>
     </div>

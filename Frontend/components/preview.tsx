@@ -1,10 +1,13 @@
 "use client"
 
+import useWebContainers from "@/hooks/useWebContainers";
+
 interface PreviewProps {
   previewUrl?: string
 }
-
+const webContainer = useWebContainers();
 export function Preview({ previewUrl }: PreviewProps) {
+
   return (
     <div className="h-1/2 flex flex-col">
       <div className="h-10 border-b border-border px-4 flex items-center">

@@ -10,9 +10,10 @@ export function buildFileTreeFromSteps(steps: Step[]): FileItem[] {
   const root: FileItem[] = [];
 
   for (const step of steps) {
-    if (!step.path || !step.code) continue;
+    if (!step.path || step.code === undefined || step.code === null) continue;
 
-    const parts = step.path.split("/");
+    const cleanPath = step.path.startsWith('/') ? step.path.slice(1) : step.path;
+    const parts = cleanPath.split("/");
     let current = root;
 
     parts.forEach((part, index) => {
@@ -62,30 +63,22 @@ export function findFileByPath(nodes: FileItem[], path: string): FileItem | null
 }
 
 
-export function convertToFileSystemTree(files: any[]): any {
+export function convertToFileSystemTree(nodes: FileItem[]): any {
   const tree: any = {};
-  
-  files.forEach(file => {
-      const parts = file.path.split('/');
-      let current = tree;
-      
-      for (let i = 0; i < parts.length; i++) {
-          const part = parts[i];
-          const isFile = i === parts.length - 1;
-          
-          if (isFile) {
-              current[part] = {
-                  file: { contents: file.content }
-              };
-          } else {
-              if (!current[part]) {
-                  current[part] = { directory: {} };
-              }
-              current = current[part].directory;
-          }
-      }
-  });
 
+  for (const node of nodes) {
+    if (node.type === "file") {
+      tree[node.name] = {
+        file: {
+          contents: node.content || ""
+        }
+      };
+    } else if (node.type === "folder") {
+      tree[node.name] = {
+        directory: node.children ? convertToFileSystemTree(node.children) : {}
+      };
+    }
+  }
 
   return tree;
 }

@@ -7,68 +7,34 @@ import { PromptPanel } from "@/components/prompt-panel";
 import { FileExplorer } from "@/components/file-explorer";
 import { CodePreviewToggle } from "@/components/code-preview-toggle";
 import type { Project, Step, FileItem } from "@/types";
-import { buildFileTreeFromSteps, findFileByPath, findFirstFile } from "@/lib/utils";
+import {
+  buildFileTreeFromSteps,
+  convertToFileSystemTree,
+  findFileByPath,
+  findFirstFile,
+} from "@/lib/utils";
 import { parseXml } from "@/lib/steps";
 import { useWebContainer } from "@/hooks/useWebContainers";
-import { convertToFileSystemTree } from "@/lib/utils";
+import type { WebContainer } from "@webcontainer/api";
 
 export default function GeneratePage() {
+  const router = useRouter();
+  const { webcontainer, isLoading } = useWebContainer();
+
   const [project, setProject] = useState<Project>();
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [view, setView] = useState<"code" | "preview">("code");
-  const router = useRouter();
-  const hasStartedRef = useRef(false);
-  const lastActiveFileRef = useRef<string | null>(null);
-  const { webcontainer, isLoading } = useWebContainer();
   const [previewUrl, setPreviewUrl] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
 
-  useEffect(() => {
+  const hasStartedRef = useRef(false);
+  const hasDevStartedRef = useRef(false);
+  const lastActiveFileRef = useRef<string | null>(null);
 
-    if (!webcontainer || !project?.fileTree || previewUrl) return;
-
-    async function startContainer() {
-      setLogs(prev => [...prev, "Starting WebContainer...\n"]);
-      setLogs(prev => [...prev, "Mounting files...\n"]);
-      const fileSystemTree = convertToFileSystemTree(project!.fileTree);
-      await webcontainer?.mount(fileSystemTree);
-      setLogs(prev => [...prev, "Running npm install...\n"]);
-      const installProcess = await webcontainer?.spawn('npm', ['install']);
-
-      installProcess?.output.pipeTo(new WritableStream({
-        write(data) {
-          setLogs(prev => [...prev, data]);
-        }
-      }));
-
-      const installExitCode = await installProcess?.exit;
-      if (installExitCode !== 0) {
-        setLogs(prev => [...prev, "\nInstallation failed! Check logs above.\n"]);
-        return;
-      }
-
-      setLogs(prev => [...prev, "\nInstallation complete.\nStarting dev server...\n"]);
-      const devProcess = await webcontainer?.spawn('npm', ['run', 'dev']);
-
-      devProcess?.output.pipeTo(new WritableStream({
-        write(data) {
-          setLogs(prev => [...prev, data]);
-        }
-      }));
-
-      webcontainer?.on('server-ready', (port, url) => {
-        setLogs(prev => [...prev, `\nServer ready at: ${url}\n`]);
-        setPreviewUrl(url);
-
-        setProject(prev => prev ? { ...prev, previewUrl: url } : undefined);
-      });
-    }
-
-    startContainer();
-  }, [webcontainer, project?.fileTree, previewUrl]);
   useEffect(() => {
     if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
 
     const rawSteps = localStorage.getItem("generatedSteps");
     const requestJson = localStorage.getItem("generationRequest");
@@ -84,6 +50,7 @@ export default function GeneratePage() {
         fileTree,
         previewUrl: "",
       });
+
       if (firstFile) {
         setSelectedFile(firstFile);
         setView("code");
@@ -91,23 +58,28 @@ export default function GeneratePage() {
       return;
     }
 
-    if (requestJson) {
-      hasStartedRef.current = true;
-      const request = JSON.parse(requestJson);
-      const { prompt, prompts, initialSteps } = request;
+    if (!requestJson) {
+      router.push("/prompt");
+      return;
+    }
 
-      setProject({
-        prompt,
-        steps: initialSteps,
-        fileTree: [],
-        previewUrl: "",
-      });
-      setIsGenerating(true);
-      setView("code");
+    const { prompt, prompts, initialSteps } = JSON.parse(requestJson);
 
-      const streamGeneration = async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
+    setProject({
+      prompt,
+      steps: initialSteps,
+      fileTree: [],
+      previewUrl: "",
+    });
+
+    setIsGenerating(true);
+    setView("code");
+
+    const streamGeneration = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
+          {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -116,76 +88,141 @@ export default function GeneratePage() {
                 content,
               })),
             }),
-          });
-          if (!response.body) throw new Error("No response body");
+          }
+        );
 
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let accumulatedResponse = "";
+        if (!response.body) throw new Error("No response body");
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
 
-            const chunk = decoder.decode(value, { stream: true });
-            accumulatedResponse += chunk;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-            const newSteps = parseXml(accumulatedResponse);
+          accumulated += decoder.decode(value, { stream: true });
+          const newSteps = parseXml(accumulated);
 
-            const allSteps = [...initialSteps, ...newSteps];
-            const fileTree = buildFileTreeFromSteps(allSteps);
+          const allSteps = [...initialSteps, ...newSteps];
+          const fileTree = buildFileTreeFromSteps(allSteps);
 
-            const activeStep = newSteps.slice().reverse().find(step => step.path);
-            const activeFilePath = activeStep?.path;
+          setProject((prev) =>
+            prev ? { ...prev, steps: allSteps, fileTree } : prev
+          );
 
-            setProject((prev) => {
-              if (!prev) return undefined;
-              return {
-                ...prev,
-                steps: allSteps,
-                fileTree
-              };
-            });
-
-            if (activeFilePath) {
-              if (activeFilePath !== lastActiveFileRef.current) {
-                setView("code");
-                lastActiveFileRef.current = activeFilePath;
-              }
-
-              const file = findFileByPath(fileTree, activeFilePath);
-              if (file) setSelectedFile(file);
-            } else {
-              setSelectedFile((prev) => {
-                if (prev) return prev;
-                return findFirstFile(fileTree);
-              });
+          const activeStep = [...newSteps].reverse().find((s) => s.path);
+          if (
+            activeStep?.path &&
+            activeStep.path !== lastActiveFileRef.current
+          ) {
+            const file = findFileByPath(fileTree, activeStep.path);
+            if (file) {
+              setSelectedFile(file);
+              setView("code");
+              lastActiveFileRef.current = activeStep.path;
             }
           }
-          const finalSteps = parseXml(accumulatedResponse);
-          const allSteps = [...initialSteps, ...finalSteps];
-          localStorage.setItem("generatedSteps", JSON.stringify(allSteps));
-          localStorage.removeItem("generationRequest");
-        } catch (error) {
-          console.error("Streaming error:", error);
-        } finally {
-          setIsGenerating(false);
         }
-      };
 
-      streamGeneration();
-      return;
-    }
+        localStorage.setItem(
+          "generatedSteps",
+          JSON.stringify([...initialSteps, ...parseXml(accumulated)])
+        );
+        localStorage.removeItem("generationRequest");
+      } catch (err) {
+        console.error("Streaming error:", err);
+      } finally {
+        setIsGenerating(false);
+      }
+    };
 
-    router.push("/prompt");
+    streamGeneration();
   }, [router]);
 
-  if (!project) {
+  useEffect(() => {
+    if (!webcontainer || !project?.fileTree.length) return;
+    if (hasDevStartedRef.current) return;
+
+    const container: WebContainer = webcontainer;
+
+    const bootAndStart = async () => {
+      hasDevStartedRef.current = true;
+
+      setLogs((l) => [...l, "Booting WebContainer...\n"]);
+
+      await container.mount(
+        convertToFileSystemTree(project.fileTree)
+      );
+
+      setLogs((l) => [...l, "Installing dependencies...\n"]);
+      const install = await container.spawn("npm", ["install"]);
+      install.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            setLogs((l) => [...l, data]);
+          },
+        })
+      );
+      await install.exit;
+
+      setLogs((l) => [...l, "Starting dev server...\n"]);
+      const dev = await container.spawn("npm", ["run", "dev"]);
+      dev.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            setLogs((l) => [...l, data]);
+          },
+        })
+      );
+
+      container.on("server-ready", (_, url) => {
+        setPreviewUrl(url);
+        setProject((p) => (p ? { ...p, previewUrl: url } : p));
+      });
+    };
+
+    bootAndStart().catch(console.error);
+  }, [webcontainer, project?.fileTree]);
+
+  useEffect(() => {
+    if (!webcontainer || !project?.fileTree.length) return;
+    if (!hasDevStartedRef.current) return;
+
+    const container: WebContainer = webcontainer;
+
+    const writeNode = async (node: FileItem, base = "/") => {
+      const fullPath = `${base}${node.name}`;
+
+      if (node.type === "folder") {
+        await container.fs.mkdir(fullPath, { recursive: true });
+        if (node.children) {
+          for (const child of node.children) {
+            await writeNode(child, `${fullPath}/`);
+          }
+        }
+      } else {
+        await container.fs.writeFile(fullPath, node.content || "");
+      }
+    };
+
+    const sync = async () => {
+      for (const node of project.fileTree) {
+        await writeNode(node);
+      }
+    };
+
+    sync().catch(console.error);
+  }, [project?.fileTree, webcontainer]);
+
+  if (!project || isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground animate-pulse">Initializing project...</p>
+          <p className="text-muted-foreground animate-pulse">
+            Initializing project...
+          </p>
         </div>
       </div>
     );
@@ -226,4 +263,3 @@ export default function GeneratePage() {
     </div>
   );
 }
-

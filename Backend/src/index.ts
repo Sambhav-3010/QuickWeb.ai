@@ -3,9 +3,9 @@ import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import callAI from "./models/meta.js";
 import OpenAI from "openai";
-import { BASE_PROMPT } from "./defaults/prompts";
-import { basePrompt as nodeBasePrompt } from "./defaults/node";
-import { basePrompt as reactBasePrompt } from "./defaults/react";
+import { BASE_PROMPT } from "./defaults/prompts.js";
+import { basePrompt as nodeBasePrompt } from "./defaults/node.js";
+import { basePrompt as reactBasePrompt } from "./defaults/react.js";
 import cors from "cors";
 
 dotenv.config();

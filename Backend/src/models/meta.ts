@@ -1,8 +1,7 @@
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import type { Response } from "express";
-import { getSystemPrompt } from "../defaults/prompts";
-import type { ChatCompletionMessageParam } from "openai/resources";
+import { getSystemPrompt } from "../defaults/prompts.js";
 
 dotenv.config();
 type ChatMessage = {

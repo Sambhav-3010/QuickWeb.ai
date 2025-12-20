@@ -31,8 +31,10 @@ export function CodePreviewToggle({
   useEffect(() => {
     if (previewUrl) {
       setTerminalOpen(false);
+    } else {
+      setTerminalOpen(true);
     }
-  }, [previewUrl])
+  }, [previewUrl]);
 
   useEffect(() => {
     if (isGenerating && editor && view === 'code') {

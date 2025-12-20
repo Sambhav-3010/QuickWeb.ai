@@ -147,7 +147,14 @@ export default function PromptPage() {
               {examplePrompts.map((example, i) => (
                 <button
                   key={i}
-                  onClick={() => setPrompt(example)}
+                  onClick={() => {
+                    const styles = ["minimalist", "glassmorphism", "neobrutalism", "futuristic", "retro-modern", "clean", "flat design", "magazine layout"];
+                    const colors = ["sunset orange", "ocean blue", "midnight violet", "forest green", "neon pink", "monochrome", "pastel", "vibrant gradient"];
+                    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    const enhancedPrompt = `${example}. Make it ${randomStyle} with a ${randomColor} color scheme.`;
+                    setPrompt(enhancedPrompt);
+                  }}
                   disabled={isGenerating}
                   className="text-left p-5 glass rounded-xl hover:glass-strong hover:glow transition-all text-sm"
                 >

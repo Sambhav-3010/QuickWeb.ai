@@ -35,6 +35,7 @@ export default function GeneratePage() {
   const lastPackageJsonRef = useRef<string | null>(null);
   const fullGeneratedCodeRef = useRef<string>("");
   const generationRequestRef = useRef<any>(null);
+  const devProcessRef = useRef<any>(null);
 
   const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = []) => {
     try {
@@ -102,6 +103,15 @@ export default function GeneratePage() {
   const handleRegenerate = async (newPrompt: string) => {
     const requestJson = localStorage.getItem("generationRequest");
     const { prompts } = requestJson ? JSON.parse(requestJson) : (generationRequestRef.current || { prompts: [] });
+
+    // Reset state for regeneration to force full re-boot
+    if (devProcessRef.current) {
+      devProcessRef.current.kill(); // Kill previous server
+    }
+    hasMountedFsRef.current = false;
+    hasDevStartedRef.current = false;
+    setLogs([]); // Clear logs for fresh start
+    setPreviewUrl(""); // Clear preview
 
     const messages = [
       ...prompts.map((content: string) => ({ role: "user", content })),
@@ -212,6 +222,8 @@ export default function GeneratePage() {
 
       setLogs(l => [...l, "Starting dev server...\n"]);
       const dev = await container.spawn("npm", ["run", "dev"]);
+      devProcessRef.current = dev;
+
       dev.output.pipeTo(
         new WritableStream({
           write(data) {

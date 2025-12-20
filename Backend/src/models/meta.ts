@@ -27,7 +27,7 @@ async function callAI(messages: ChatMessage[], res: Response): Promise<void> {
     messages: input,
     temperature: 0.4,
     top_p: 0.7,
-    max_tokens: 8000,
+    max_tokens: 80000,
     stream: true,
   });
 

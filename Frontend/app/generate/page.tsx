@@ -36,6 +36,7 @@ export default function GeneratePage() {
   const fullGeneratedCodeRef = useRef<string>("");
   const generationRequestRef = useRef<any>(null);
   const devProcessRef = useRef<any>(null);
+  const hasErrorTriggeredRef = useRef(false);
 
   const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = []) => {
     try {
@@ -102,22 +103,29 @@ export default function GeneratePage() {
 
   const handleRegenerate = async (newPrompt: string) => {
     const requestJson = localStorage.getItem("generationRequest");
-    const { prompts } = requestJson ? JSON.parse(requestJson) : (generationRequestRef.current || { prompts: [] });
+    const parsedRequest = requestJson ? JSON.parse(requestJson) : (generationRequestRef.current || { prompts: [] });
+    const { prompts } = parsedRequest;
 
-    // Reset state for regeneration to force full re-boot
     if (devProcessRef.current) {
-      devProcessRef.current.kill(); // Kill previous server
+      devProcessRef.current.kill();
     }
     hasMountedFsRef.current = false;
     hasDevStartedRef.current = false;
-    setLogs([]); // Clear logs for fresh start
-    setPreviewUrl(""); // Clear preview
+    hasErrorTriggeredRef.current = false;
+    setLogs([]);
+    setPreviewUrl("");
 
     const messages = [
       ...prompts.map((content: string) => ({ role: "user", content })),
       { role: "assistant", content: fullGeneratedCodeRef.current },
-      { role: "user", content: `Here is the new request to update the project: ${newPrompt}. Please regenerate or update the code accordingly. Return the full updated code structure.` }
+      { role: "user", content: `Here is the new request to update the project: ${newPrompt}. Please regenerate or update the code accordingly. IMPORTANT: Check for any missing imports (like 'Calendar', 'Lucide' icons, etc.) and ensure all used components are defined. Consider wrapping the application in an Error Boundary to prevent white screen crashes. Return the full updated code structure.` }
     ];
+
+    const updatedPrompts = [...prompts, newPrompt];
+    const updatedRequest = { ...parsedRequest, prompts: updatedPrompts };
+
+    localStorage.setItem("generationRequest", JSON.stringify(updatedRequest));
+    generationRequestRef.current = updatedRequest;
 
     setIsGenerating(true);
     setView("code");
@@ -228,6 +236,18 @@ export default function GeneratePage() {
         new WritableStream({
           write(data) {
             setLogs(l => [...l, data]);
+
+            if (!hasErrorTriggeredRef.current) {
+              const lowerData = data.toLowerCase();
+              const errorKeywords = ["uncaught referenceerror", "syntaxerror", "cannot find module", "failed to resolve import", "internal server error"];
+              if (errorKeywords.some(keyword => lowerData.includes(keyword))) {
+                hasErrorTriggeredRef.current = true;
+                // Defer the regeneration slightly to allow logs to flush
+                setTimeout(() => {
+                  handleRegenerate(`I encountered this error during execution: ${data}. Please fix it.`);
+                }, 1000);
+              }
+            }
           },
         })
       );

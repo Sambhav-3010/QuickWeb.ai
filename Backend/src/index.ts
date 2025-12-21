@@ -1,7 +1,7 @@
 import express from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
-import callAI from "./models/meta.js";
+import callAI from "./models/newMode.js";
 import OpenAI from "openai";
 import { BASE_PROMPT } from "./defaults/prompts.js";
 import { basePrompt as nodeBasePrompt } from "./defaults/node.js";

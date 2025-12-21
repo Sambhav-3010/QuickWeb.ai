@@ -390,6 +390,29 @@ export default function GeneratePage() {
           isGenerating={isGenerating}
           onViewChange={setView}
           onEditorChange={handleEditorChange}
+          onDownload={async () => {
+            if (!project?.fileTree) return;
+            const JSZip = (await import("jszip")).default;
+            const { saveAs } = (await import("file-saver"));
+
+            const zip = new JSZip();
+
+            const processNode = (node: FileItem, currentZip: any) => {
+              if (node.type === 'folder') {
+                const folder = currentZip.folder(node.name);
+                if (node.children) {
+                  node.children.forEach(child => processNode(child, folder));
+                }
+              } else {
+                currentZip.file(node.name, node.content || "");
+              }
+            };
+
+            project.fileTree.forEach(node => processNode(node, zip));
+
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, "project.zip");
+          }}
         />
       </div>
     </div>

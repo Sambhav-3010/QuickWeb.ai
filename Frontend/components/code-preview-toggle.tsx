@@ -1,4 +1,4 @@
-import { Code, Eye } from "lucide-react";
+import { Code, Eye, Download } from "lucide-react";
 import { TerminalPanel } from "./terminal-panel";
 import { useEffect, useState, useMemo } from "react";
 import Editor from "@monaco-editor/react";
@@ -12,6 +12,7 @@ interface CodePreviewToggleProps {
   onEditorChange?: (value: string | undefined) => void;
   logs: string[];
   isGenerating?: boolean;
+  onDownload?: () => void;
 }
 
 export function CodePreviewToggle({
@@ -23,6 +24,7 @@ export function CodePreviewToggle({
   onEditorChange,
   logs,
   isGenerating,
+  onDownload,
 }: CodePreviewToggleProps) {
   const setView = onViewChange || (() => { });
   const [terminalOpen, setTerminalOpen] = useState<boolean>(true);
@@ -62,6 +64,15 @@ export function CodePreviewToggle({
           {view === "code" ? fileName || "No file selected" : "Preview"}
         </span>
         <div className="flex items-center gap-2 glass rounded-lg p-1">
+          {onDownload && (
+            <button
+              onClick={onDownload}
+              className="p-2 rounded-md transition-all hover:bg-accent/50 text-muted-foreground"
+              title="Download Zip"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setView("preview")}
             className={`p-2 rounded-md transition-all ${view === "preview"

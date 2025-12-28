@@ -15,10 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
-
 import { parseXml } from "@/lib/steps";
 import { Step } from "@/types";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react"
 
 export default function PromptPage() {
   const [prompt, setPrompt] = useState("");
@@ -26,6 +26,18 @@ export default function PromptPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const response = await axios.get(BACKEND_URL);
+        console.log(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    checkBackend()
+  }, [BACKEND_URL])
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;

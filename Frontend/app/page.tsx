@@ -4,7 +4,6 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Sparkles, Zap, Eye, Code, Layers, Download } from "lucide-react"
 import Image from "next/image"
-
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">

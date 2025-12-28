@@ -38,14 +38,14 @@ export default function GeneratePage() {
   const devProcessRef = useRef<any>(null);
   const hasErrorTriggeredRef = useRef(false);
 
-  const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = []) => {
+  const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = [], model?: string) => {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages }),
+          body: JSON.stringify({ messages, model }),
         }
       );
 
@@ -104,7 +104,7 @@ export default function GeneratePage() {
   const handleRegenerate = async (newPrompt: string) => {
     const requestJson = localStorage.getItem("generationRequest");
     const parsedRequest = requestJson ? JSON.parse(requestJson) : (generationRequestRef.current || { prompts: [] });
-    const { prompts } = parsedRequest;
+    const { prompts, model } = parsedRequest;
 
     if (devProcessRef.current) {
       devProcessRef.current.kill();
@@ -130,7 +130,7 @@ export default function GeneratePage() {
     setIsGenerating(true);
     setView("code");
 
-    await performGeneration(messages, true, project?.steps || []);
+    await performGeneration(messages, true, project?.steps || [], model);
   };
 
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function GeneratePage() {
 
     const parsed = JSON.parse(requestJson);
     generationRequestRef.current = parsed;
-    const { prompt, prompts, initialSteps } = parsed;
+    const { prompt, prompts, initialSteps, model } = parsed;
 
     setProject({
       prompt,
@@ -178,7 +178,7 @@ export default function GeneratePage() {
       role: "user",
       content,
     }));
-    performGeneration(messages, false, initialSteps);
+    performGeneration(messages, false, initialSteps, model);
 
   }, [router]);
 

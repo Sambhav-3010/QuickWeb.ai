@@ -1,7 +1,8 @@
 import express from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
-import callAI from "./models/newMode.js";
+import callGemini from "./models/gemini.js";
+import callQwen from "./models/qwen.js";
 import OpenAI from "openai";
 import { BASE_PROMPT } from "./defaults/prompts.js";
 import { basePrompt as nodeBasePrompt } from "./defaults/node.js";
@@ -74,9 +75,14 @@ app.post("/template", async (req, res) => {
 
 app.post("/chat", async (req: Request, res: Response): Promise<void> => {
   const message = req.body.messages;
+  const model = req.body.model;
 
   try {
-    await callAI(message, res);
+    if (model === "Qwen") {
+      await callQwen(message, res);
+    } else {
+      await callGemini(message, res);
+    }
   } catch (error) {
     console.error(error);
     if (!res.headersSent) {

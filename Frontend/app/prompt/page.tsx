@@ -5,6 +5,13 @@ import Link from "next/link";
 import axios from "axios";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -15,6 +22,7 @@ import { useRouter } from "next/navigation";
 
 export default function PromptPage() {
   const [prompt, setPrompt] = useState("");
+  const [model, setModel] = useState<"gemini" | "Qwen">("gemini");
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL as string;
@@ -42,7 +50,8 @@ export default function PromptPage() {
       localStorage.setItem("generationRequest", JSON.stringify({
         prompt,
         prompts: [...prompts, prompt],
-        initialSteps
+        initialSteps,
+        model
       }));
 
       localStorage.removeItem("generatedSteps");
@@ -74,7 +83,7 @@ export default function PromptPage() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg gradient-primary glow" />
-            <span className="font-bold text-lg gradient-text">WebGen AI</span>
+            <span className="font-bold text-lg gradient-text">QuickWeb.ai</span>
           </Link>
           <ThemeToggle />
         </div>
@@ -115,25 +124,37 @@ export default function PromptPage() {
                 {prompt.length} characters
               </p>
 
-              <Button
-                size="lg"
-                onClick={handleGenerate}
-                disabled={!prompt.trim() || isGenerating}
-                className="min-w-40 gradient-primary glow-strong hover:scale-105 transition-all"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Generate
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Select value={model} onValueChange={(value: "gemini" | "Qwen") => setModel(value)}>
+                  <SelectTrigger className="w-[180px] bg-background/50">
+                    <SelectValue placeholder="Select Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemini">Gemini 2.5</SelectItem>
+                    <SelectItem value="Qwen">Qwen 3</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  size="lg"
+                  onClick={handleGenerate}
+                  disabled={!prompt.trim() || isGenerating}
+                  className="min-w-40 gradient-primary glow-strong hover:scale-105 transition-all"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Generate
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 

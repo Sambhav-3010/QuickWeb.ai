@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Sparkles, Zap, Eye, Code, Layers, Download } from "lucide-react"
+import Image from "next/image"
 
 export default function LandingPage() {
   return (
@@ -15,9 +16,9 @@ export default function LandingPage() {
 
       <header className="sticky top-0 z-50 glass-strong">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg gradient-primary glow" />
-            <span className="font-bold text-lg gradient-text">WebGen AI</span>
+          <div className="flex items-center">
+            <Image src="/favicon.png" alt="Logo" width={60} height={60} priority />
+            <span className="font-bold text-lg gradient-text">QuickWeb.ai</span>
           </div>
           <ThemeToggle />
         </div>
@@ -173,7 +174,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 max-w-4xl">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-4xl md:text-5xl font-bold">Frequently asked questions</h2>
-            <p className="text-xl text-muted-foreground">Everything you need to know about WebGen AI</p>
+            <p className="text-xl text-muted-foreground">Everything you need to know about QuickWeb.ai</p>
           </div>
 
           <div className="glass rounded-2xl p-8">
@@ -181,7 +182,7 @@ export default function LandingPage() {
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-left text-lg">How does the website generation work?</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-base leading-relaxed">
-                  WebGen uses advanced AI language models to understand your prompt and generate complete HTML, CSS, and
+                  QuickWeb.ai uses advanced AI language models to understand your prompt and generate complete HTML, CSS, and
                   JavaScript code. Simply describe what you want, and the AI creates a fully-functional website based on
                   your requirements with modern design patterns.
                 </AccordionContent>
@@ -217,7 +218,7 @@ export default function LandingPage() {
                   What technologies are used in generated websites?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-base leading-relaxed">
-                  WebGen creates websites using modern web standards including HTML5, CSS3, and vanilla JavaScript. The
+                  QuickWeb.ai creates websites using modern web standards including HTML5, CSS3, and vanilla JavaScript. The
                   generated code is clean, semantic, and follows best practices for accessibility and performance.
                 </AccordionContent>
               </AccordionItem>
@@ -267,7 +268,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-lg gradient-primary" />
-            <span className="font-semibold gradient-text">WebGen AI</span>
+            <span className="font-semibold gradient-text">QuickWeb.ai</span>
           </div>
           <p className="text-sm text-muted-foreground">Built with Next.js, TypeScript, and AI Magic</p>
         </div>

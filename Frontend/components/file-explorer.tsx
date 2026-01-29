@@ -13,9 +13,9 @@ interface FileExplorerProps {
 
 export function FileExplorer({ files, selectedFile, onSelectFile }: FileExplorerProps) {
   return (
-    <div className="w-[18%] border-r border-border/50 flex flex-col bg-card/30 backdrop-blur-sm">
-      <div className="p-4 border-b border-border/50">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Files</h2>
+    <div className="w-[18%] border-r border-border/40 flex flex-col bg-muted/20">
+      <div className="p-4 border-b border-border/40">
+        <h2 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Files</h2>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar p-2">
         {files.length === 0 ? (
@@ -43,7 +43,7 @@ function FileTree({
   depth?: number
 }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {nodes.map((node) => (
         <FileTreeNode
           key={node.path}
@@ -87,8 +87,8 @@ function FileTreeNode({
         className={cn(
           "w-full flex items-center gap-2 px-2 py-2 text-sm transition-all rounded-lg group",
           isSelected
-            ? "glass glow text-foreground font-medium"
-            : "hover:bg-accent/50 hover:text-foreground text-muted-foreground",
+            ? "bg-primary/10 text-foreground font-medium border border-primary/20"
+            : "hover:bg-muted/50 hover:text-foreground text-muted-foreground",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -97,7 +97,7 @@ function FileTreeNode({
             {isOpen ? (
               <ChevronDown className="w-4 h-4 shrink-0 text-primary" />
             ) : (
-              <ChevronRight className="w-4 h-4 shrink-0" />
+              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
             )}
             {isOpen ? (
               <FolderOpen className="w-4 h-4 shrink-0 text-secondary" />

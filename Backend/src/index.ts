@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import callGemini from "./models/gemini.js";
 import callQwen from "./models/qwen.js";
+import callClaude from "./models/claude.js";
 import OpenAI from "openai";
 import { BASE_PROMPT } from "./defaults/prompts.js";
 import { basePrompt as nodeBasePrompt } from "./defaults/node.js";
@@ -80,6 +81,8 @@ app.post("/chat", async (req: Request, res: Response): Promise<void> => {
   try {
     if (model === "Qwen") {
       await callQwen(message, res);
+    } else if (model === "claude") {
+      await callClaude(message, res);
     } else {
       await callGemini(message, res);
     }

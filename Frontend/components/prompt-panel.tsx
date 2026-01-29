@@ -36,9 +36,9 @@ export function PromptPanel({
       : "Loading...";
 
   return (
-    <div className="w-[20%] shrink-0 border-r border-border/50 flex flex-col bg-card/30 overflow-hidden">
+    <div className="w-[20%] shrink-0 border-r border-border/40 flex flex-col bg-muted/20 overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar p-4" ref={scrollRef}>
-        <h3 className="font-semibold text-sm uppercase mb-4">Build Steps</h3>
+        <h3 className="font-medium text-sm uppercase tracking-wide text-muted-foreground mb-4">Build Steps</h3>
 
         {buildSteps.map((step, index) => (
           <div key={index} className="flex gap-3 p-3 rounded-lg items-center justify-center">
@@ -52,9 +52,9 @@ export function PromptPanel({
               )}
             </div>
             <div className="flex flex-col gap-1 min-w-0 w-full">
-              <span className="text-sm font-medium">{step.title}</span>
+              <span className="text-sm font-medium text-foreground">{step.title}</span>
               {step.code && (step.type === StepType.RunScript || !step.path) && (
-                <div className="bg-gray-100 dark:bg-black/50 text-xs font-mono p-2 rounded text-muted-foreground overflow-hidden">
+                <div className="bg-muted/50 text-xs font-mono p-2 rounded-lg text-muted-foreground overflow-hidden border border-border/30">
                   {step.code.split("\n").map((line, i) => (
                     <div key={i} className="whitespace-pre-wrap break-all">
                       {line}
@@ -67,17 +67,17 @@ export function PromptPanel({
         ))}
       </div>
 
-      <div className="p-4 border-t border-border/50">
+      <div className="p-4 border-t border-border/40 bg-background/50">
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={originalPrompt}
-          className="min-h-32 mb-3"
+          className="min-h-32 mb-3 bg-background border-border/40 focus:border-primary/50"
         />
         <Button
           onClick={() => onGenerate(prompt)}
           disabled={isGenerating || !prompt.trim()}
-          className="w-full"
+          className="w-full japandi-gradient text-white"
         >
           <Sparkles className="w-4 h-4 mr-2" />
           Regenerate

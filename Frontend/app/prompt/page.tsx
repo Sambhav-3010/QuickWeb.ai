@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import axios from "axios";
-import { Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, Leaf } from "lucide-react";
 
 import {
   Select,
@@ -22,7 +22,7 @@ import { useEffect } from "react"
 
 export default function PromptPage() {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<"gemini" | "Qwen">("gemini");
+  const [model, setModel] = useState<"gemini" | "Qwen" | "claude">("gemini");
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL as string;
@@ -82,53 +82,94 @@ export default function PromptPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-accent/5" />
-        <div className="absolute top-1/3 right-1/3 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/3 left-1/3 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse [animation-delay:1s]" />
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background">
+      {/* Japandi Decorative Background Elements - High Visibility */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Concentric circles - top right */}
+        <svg className="absolute -top-12 -right-12 w-[280px] h-[280px] opacity-50" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="85" fill="none" stroke="#C67C4E" strokeWidth="3" />
+          <circle cx="100" cy="100" r="62" fill="none" stroke="#C67C4E" strokeWidth="3" />
+          <circle cx="100" cy="100" r="40" fill="none" stroke="#C67C4E" strokeWidth="3" />
+          <circle cx="100" cy="100" r="18" fill="none" stroke="#C67C4E" strokeWidth="3" />
+        </svg>
+
+        {/* Semicircle - bottom left */}
+        <div className="absolute -bottom-16 -left-16 w-40 h-20 rounded-t-full bg-[#8B9D83]/50" />
+
+        {/* Arch shape - left side */}
+        <svg className="absolute top-[30%] left-8 w-14 h-20 opacity-45" viewBox="0 0 50 70">
+          <path d="M 5 70 L 5 28 Q 5 5 25 5 Q 45 5 45 28 L 45 70" fill="none" stroke="#D4A574" strokeWidth="4" />
+        </svg>
+
+        {/* Organic blob - top left */}
+        <div className="absolute top-28 left-[6%] w-14 h-16 bg-[#D4A574]/45 rounded-[60%_40%_50%_50%/50%_60%_40%_50%]" />
+
+        {/* Circle cluster - right side */}
+        <div className="absolute top-[50%] right-[4%] flex flex-col gap-3">
+          <div className="w-5 h-5 rounded-full bg-[#C67C4E]/55" />
+          <div className="w-5 h-5 rounded-full bg-[#C67C4E]/65" />
+          <div className="w-5 h-5 rounded-full bg-[#C67C4E]/55" />
+        </div>
+
+        {/* Organic blob - bottom right */}
+        <div className="absolute -bottom-4 right-[8%] w-20 h-28 bg-[#8B9D83]/40 rounded-[40%_60%_50%_50%/60%_40%_60%_40%]" />
+
+        {/* Small concentric circles - bottom left */}
+        <svg className="absolute bottom-28 left-[10%] w-14 h-14 opacity-45" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#8B9D83" strokeWidth="3" />
+          <circle cx="50" cy="50" r="20" fill="none" stroke="#8B9D83" strokeWidth="3" />
+        </svg>
+
+        {/* Floating dots */}
+        <div className="absolute top-20 right-[18%] w-5 h-5 rounded-full bg-[#D4A574]/50" />
+        <div className="absolute top-36 left-[22%] w-3 h-3 rounded-full bg-[#C67C4E]/55" />
+
+        {/* Curved line */}
+        <svg className="absolute bottom-[28%] right-[3%] w-10 h-20 opacity-40" viewBox="0 0 30 60">
+          <path d="M 15 0 Q 30 15 15 30 Q 0 45 15 60" fill="none" stroke="#C67C4E" strokeWidth="3" />
+        </svg>
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-strong">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/40">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg gradient-primary glow" />
-            <span className="font-bold text-lg gradient-text">QuickWeb.ai</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Leaf className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-semibold text-lg text-foreground">QuickWeb.ai</span>
           </Link>
           <ThemeToggle />
         </div>
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-4xl space-y-8">
+      <main className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-3xl space-y-8">
           {/* Hero */}
           <div className="space-y-4 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium mb-2">
-              <Sparkles className="w-4 h-4 text-primary" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-sm font-medium text-primary">
+              <Sparkles className="w-4 h-4" />
               <span>AI Website Generator</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold">
-              Describe your <span className="gradient-text">dream website</span>
+            <h1 className="text-4xl md:text-5xl font-light text-foreground">
+              Describe your <span className="japandi-text-gradient font-medium">dream website</span>
             </h1>
 
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Tell us what you want to build, and our AI will generate it in
-              seconds.
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+              Tell us what you want to build, and our AI will generate it in seconds.
             </p>
           </div>
 
           {/* Prompt Box */}
-          <div className="glass-strong rounded-2xl p-8 space-y-6 glow">
+          <div className="japandi-card-elevated organic-shadow-lg rounded-2xl p-8 space-y-6">
             <Textarea
               placeholder="Example: Create a modern portfolio website with an animated hero section, project showcase, skills section, and contact form..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               disabled={isGenerating}
-              className="min-h-48 resize-none text-base"
+              className="min-h-48 resize-none text-base bg-background/50 border-border/40 focus:border-primary/50 transition-colors"
             />
 
             <div className="flex items-center justify-between">
@@ -137,13 +178,14 @@ export default function PromptPage() {
               </p>
 
               <div className="flex items-center gap-3">
-                <Select value={model} onValueChange={(value: "gemini" | "Qwen") => setModel(value)}>
-                  <SelectTrigger className="w-[180px] bg-background/50">
+                <Select value={model} onValueChange={(value: "gemini" | "Qwen" | "claude") => setModel(value)}>
+                  <SelectTrigger className="w-[180px] bg-background/50 border-border/40">
                     <SelectValue placeholder="Select Model" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="gemini">Gemini 2.5</SelectItem>
                     <SelectItem value="Qwen">Qwen 3</SelectItem>
+                    <SelectItem value="claude">Claude Sonnet</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -151,7 +193,7 @@ export default function PromptPage() {
                   size="lg"
                   onClick={handleGenerate}
                   disabled={!prompt.trim() || isGenerating}
-                  className="min-w-40 gradient-primary glow-strong hover:scale-105 transition-all"
+                  className="min-w-40 japandi-gradient text-white organic-shadow japandi-hover"
                 >
                   {isGenerating ? (
                     <>
@@ -189,7 +231,7 @@ export default function PromptPage() {
                     setPrompt(enhancedPrompt);
                   }}
                   disabled={isGenerating}
-                  className="text-left p-5 glass rounded-xl hover:glass-strong hover:glow transition-all text-sm"
+                  className="text-left p-5 japandi-card rounded-xl japandi-hover hover:border-primary/30 transition-all text-sm text-foreground/80"
                 >
                   {example}
                 </button>

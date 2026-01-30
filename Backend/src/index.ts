@@ -76,6 +76,44 @@ app.post("/template", async (req, res) => {
   }
 });
 
+// Import the AI models for fallback
+import callGemini from "./models/gemini.js";
+import callClaude from "./models/claude.js";
+
+// Streaming chat endpoint - fallback when Puter.js times out
+app.post("/chat", async (req, res) => {
+  const { messages, model } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    res.status(400).json({ message: "Messages array is required" });
+    return;
+  }
+
+  // Set headers for streaming
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Transfer-Encoding", "chunked");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  try {
+    if (model === "gemini") {
+      await callGemini(messages, res);
+    } else if (model === "anthropic") {
+      await callClaude(messages, res);
+    } else {
+      // Default to Gemini if no model specified
+      await callGemini(messages, res);
+    }
+  } catch (error) {
+    console.error("Chat generation error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Error during AI generation" });
+    } else {
+      res.end();
+    }
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {

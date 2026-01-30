@@ -14,10 +14,14 @@ import {
 import { parseXml } from "@/lib/steps";
 import { useWebContainer } from "@/hooks/useWebContainers";
 import type { WebContainer } from "@webcontainer/api";
+import { AlertTriangle, Zap } from "lucide-react";
+
+type FallbackProvider = "gemini" | "anthropic" | null;
 
 export default function GeneratePage() {
     const navigate = useNavigate();
     const { webcontainer, isLoading } = useWebContainer();
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
 
     const [project, setProject] = useState<Project>();
     const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -25,6 +29,10 @@ export default function GeneratePage() {
     const [view, setView] = useState<"code" | "preview">("code");
     const [previewUrl, setPreviewUrl] = useState("");
     const [logs, setLogs] = useState<string[]>([]);
+    const [showFallbackModal, setShowFallbackModal] = useState(false);
+    const [fallbackMessages, setFallbackMessages] = useState<any[]>([]);
+    const [fallbackBaseSteps, setFallbackBaseSteps] = useState<Step[]>([]);
+    const [timeoutSeconds, setTimeoutSeconds] = useState(60);
 
     const hasStartedRef = useRef(false);
     const hasMountedFsRef = useRef(false);
@@ -35,9 +43,10 @@ export default function GeneratePage() {
     const generationRequestRef = useRef<any>(null);
     const devProcessRef = useRef<any>(null);
     const hasErrorTriggeredRef = useRef(false);
+    const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+    const hasReceivedDataRef = useRef(false);
 
-    // Helper to wait for Puter.js to load
-    const waitForPuter = async (maxWait = 10000): Promise<any> => {
+    const waitForPuter = async (maxWait = 100): Promise<any> => {
         const start = Date.now();
         while (Date.now() - start < maxWait) {
             const puter = (window as any).puter;
@@ -48,9 +57,91 @@ export default function GeneratePage() {
         }
         throw new Error("Puter.js failed to load. Please check your internet connection and refresh the page.");
     };
+    const performBackendGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = [], model: string) => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages, model }),
+            });
 
-    // Puter.js AI generation - calls AI directly from frontend
+            if (!response.ok) throw new Error("Backend request failed");
+            if (!response.body) throw new Error("No response body");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulated = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+                accumulated += text;
+
+                const newSteps = parseXml(accumulated);
+                const allSteps = [...baseSteps, ...newSteps];
+                const fileTree = buildFileTreeFromSteps(allSteps);
+
+                setProject((prev) => {
+                    if (!prev) return undefined;
+                    return { ...prev, steps: allSteps, fileTree };
+                });
+
+                const activeStep = [...newSteps].reverse().find(s => s.path);
+                if (activeStep?.path && activeStep.path !== lastActiveFileRef.current) {
+                    const file = findFileByPath(fileTree, activeStep.path);
+                    if (file) {
+                        setSelectedFile(file);
+                        lastActiveFileRef.current = activeStep.path;
+                        setView("code");
+                    }
+                }
+            }
+
+            fullGeneratedCodeRef.current = accumulated;
+
+            if (!isRegeneration) {
+                const currentSteps = generationRequestRef.current?.initialSteps || [];
+                localStorage.setItem(
+                    "generatedSteps",
+                    JSON.stringify([...currentSteps, ...parseXml(accumulated)])
+                );
+                localStorage.removeItem("generationRequest");
+            }
+        } catch (e) {
+            console.error("Backend generation error:", e);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    // Handle fallback provider selection
+    const handleFallbackSelect = async (provider: FallbackProvider) => {
+        if (!provider) return;
+        setShowFallbackModal(false);
+        setIsGenerating(true);
+        await performBackendGeneration(fallbackMessages, false, fallbackBaseSteps, provider);
+    };
+
+    // Puter.js AI generation with timeout - calls AI directly from frontend
     const performGeneration = async (messages: any[], isRegeneration: boolean, baseSteps: Step[] = [], model?: string) => {
+        // Reset refs
+        hasReceivedDataRef.current = false;
+
+        // Store messages for potential fallback
+        setFallbackMessages(messages);
+        setFallbackBaseSteps(baseSteps);
+
+        // Set up timeout for fallback
+        timeoutIdRef.current = setTimeout(() => {
+            if (!hasReceivedDataRef.current) {
+                console.log("Puter.js timeout - showing fallback options");
+                setIsGenerating(false);
+                setShowFallbackModal(true);
+            }
+        }, timeoutSeconds * 1000);
+
         try {
             // Wait for puter to be available (with timeout)
             const puter = await waitForPuter();
@@ -70,6 +161,15 @@ export default function GeneratePage() {
             let accumulated = "";
 
             for await (const part of stream) {
+                // Mark that we received data - cancel timeout
+                if (!hasReceivedDataRef.current) {
+                    hasReceivedDataRef.current = true;
+                    if (timeoutIdRef.current) {
+                        clearTimeout(timeoutIdRef.current);
+                        timeoutIdRef.current = null;
+                    }
+                }
+
                 const text = part?.text || "";
                 accumulated += text;
 
@@ -109,8 +209,18 @@ export default function GeneratePage() {
 
         } catch (e) {
             console.error(e);
+            // On error, also show fallback if no data received
+            if (!hasReceivedDataRef.current) {
+                setShowFallbackModal(true);
+            }
         } finally {
-            setIsGenerating(false);
+            if (timeoutIdRef.current) {
+                clearTimeout(timeoutIdRef.current);
+                timeoutIdRef.current = null;
+            }
+            if (hasReceivedDataRef.current) {
+                setIsGenerating(false);
+            }
         }
     };
 
@@ -428,6 +538,62 @@ export default function GeneratePage() {
                     }}
                 />
             </div>
+
+            {/* Fallback Modal */}
+            {showFallbackModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-background border border-border rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6 text-amber-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold text-foreground">AI Not Responding</h2>
+                                <p className="text-sm text-muted-foreground">Puter.js didn't respond in {timeoutSeconds}s</p>
+                            </div>
+                        </div>
+
+                        <p className="text-muted-foreground mb-6">
+                            The AI service is taking too long. Choose an alternative provider to continue:
+                        </p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleFallbackSelect("gemini")}
+                                className="w-full p-4 rounded-xl border border-border bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 transition-all flex items-center gap-4"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                                    <Zap className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-foreground">Google Gemini</p>
+                                    <p className="text-sm text-muted-foreground">Fast & reliable</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => handleFallbackSelect("anthropic")}
+                                className="w-full p-4 rounded-xl border border-border bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/20 hover:to-red-500/20 transition-all flex items-center gap-4"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                                    <Zap className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-foreground">Anthropic Claude</p>
+                                    <p className="text-sm text-muted-foreground">High quality output</p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowFallbackModal(false)}
+                            className="w-full mt-4 p-3 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                        >
+                            Cancel and try again later
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

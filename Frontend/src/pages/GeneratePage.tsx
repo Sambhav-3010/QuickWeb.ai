@@ -14,7 +14,7 @@ import {
 import { parseXml } from "@/lib/steps";
 import { useWebContainer } from "@/hooks/useWebContainers";
 import type { WebContainer } from "@webcontainer/api";
-import { AlertTriangle, Zap } from "lucide-react";
+import { AlertTriangle, Zap, Loader2, Sparkles, Bot, Code2 } from "lucide-react";
 
 type FallbackProvider = "gemini" | "anthropic" | null;
 
@@ -33,6 +33,7 @@ export default function GeneratePage() {
     const [fallbackMessages, setFallbackMessages] = useState<any[]>([]);
     const [fallbackBaseSteps, setFallbackBaseSteps] = useState<Step[]>([]);
     const [timeoutSeconds, setTimeoutSeconds] = useState(60);
+    const [generationStatus, setGenerationStatus] = useState<string>("Connecting to AI...");
 
     const hasStartedRef = useRef(false);
     const hasMountedFsRef = useRef(false);
@@ -46,7 +47,7 @@ export default function GeneratePage() {
     const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
     const hasReceivedDataRef = useRef(false);
 
-    const waitForPuter = async (maxWait = 100): Promise<any> => {
+    const waitForPuter = async (maxWait = 10000): Promise<any> => {
         const start = Date.now();
         while (Date.now() - start < maxWait) {
             const puter = (window as any).puter;
@@ -143,8 +144,10 @@ export default function GeneratePage() {
         }, timeoutSeconds * 1000);
 
         try {
+            setGenerationStatus("Connecting to AI service...");
             // Wait for puter to be available (with timeout)
             const puter = await waitForPuter();
+            setGenerationStatus("Preparing your request...");
 
             // Convert messages to Puter.js format
             const puterMessages = messages.map((msg: any) => ({
@@ -152,11 +155,13 @@ export default function GeneratePage() {
                 content: msg.content,
             }));
 
+            setGenerationStatus("Sending request to AI...");
             // Use streaming with Puter.js
             const stream = await puter.ai.chat(puterMessages, {
                 model: model || "claude-sonnet-4-20250514",
                 stream: true,
             });
+            setGenerationStatus("AI is thinking...");
 
             let accumulated = "";
 
@@ -164,6 +169,7 @@ export default function GeneratePage() {
                 // Mark that we received data - cancel timeout
                 if (!hasReceivedDataRef.current) {
                     hasReceivedDataRef.current = true;
+                    setGenerationStatus("Receiving code from AI...");
                     if (timeoutIdRef.current) {
                         clearTimeout(timeoutIdRef.current);
                         timeoutIdRef.current = null;
@@ -485,8 +491,52 @@ export default function GeneratePage() {
     }
 
     return (
-        <div className="h-screen flex flex-col">
+        <div className="h-screen flex flex-col relative">
             <Header />
+
+            {/* AI Generation Loading Overlay */}
+            {isGenerating && project?.fileTree.length === 0 && (
+                <div className="absolute inset-0 z-40 bg-background/95 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-6 max-w-md text-center p-8">
+                        {/* Animated AI Icon */}
+                        <div className="relative">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                <Bot className="w-10 h-10 text-primary" />
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                                <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+                            </div>
+                            {/* Pulse rings */}
+                            <div className="absolute inset-0 rounded-2xl border-2 border-primary/30 animate-ping" style={{ animationDuration: '2s' }} />
+                            <div className="absolute inset-0 rounded-2xl border border-primary/20 animate-pulse" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-semibold text-foreground flex items-center gap-2 justify-center">
+                                <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                Generating Your Website
+                            </h3>
+                            <p className="text-muted-foreground">
+                                {generationStatus}
+                            </p>
+                        </div>
+
+                        {/* Progress animation */}
+                        <div className="w-full max-w-xs">
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-primary via-primary/50 to-primary rounded-full animate-pulse"
+                                    style={{ width: '60%', animation: 'pulse 1.5s ease-in-out infinite, shimmer 2s ease-in-out infinite' }} />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Code2 className="w-4 h-4" />
+                            <span>This may take up to a minute...</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex-1 flex overflow-hidden">
                 <PromptPanel
                     onGenerate={handleRegenerate}

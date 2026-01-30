@@ -21,8 +21,6 @@ QuickWeb.ai is an AI-powered website generator that transforms natural language 
 - 🎯 **Multiple AI Models** - Choose from GPT-4, Claude, Gemini, and more
 - 🛡️ **Smart Fallback** - Automatic fallback to alternative AI providers if primary fails
 
----
-
 ## 🏗️ Tech Stack
 
 ### Frontend
@@ -52,8 +50,6 @@ QuickWeb.ai is an AI-powered website generator that transforms natural language 
 | **Google Gemini** | Fallback AI provider |
 | **Anthropic Claude** | Fallback AI provider |
 
----
-
 ## 🔄 How It Works
 
 ```
@@ -79,8 +75,6 @@ QuickWeb.ai is an AI-powered website generator that transforms natural language 
 6. **Iterate**: Continue chatting to refine the design
 7. **Download**: Export the complete project as a ZIP file
 
----
-
 ## 🛡️ Smart AI Fallback System
 
 If Puter.js doesn't respond within **60 seconds**, the system automatically:
@@ -92,8 +86,6 @@ If Puter.js doesn't respond within **60 seconds**, the system automatically:
 5. ⚡ Generation continues seamlessly
 
 This ensures your website generation never gets stuck!
-
----
 
 ## 🚀 Getting Started
 
@@ -129,8 +121,6 @@ The fastest way to run QuickWeb.ai:
    Navigate to `http://localhost:5173`
 
 That's it! 🎉
-
----
 
 ### 📦 Manual Installation
 
@@ -196,8 +186,6 @@ If you prefer to run without Docker:
    
    Navigate to `http://localhost:5173`
 
----
-
 ## 📁 Project Structure
 
 ```
@@ -230,8 +218,6 @@ website-generator/
 └── README.md
 ```
 
----
-
 ## 🌐 Deployment
 
 ### Vercel (Frontend)
@@ -241,8 +227,6 @@ The frontend is configured for Vercel deployment with the necessary COEP/COOP he
 ### Render (Backend)
 
 Deployed the backend to Render. Make sure to set the environment variables.
-
----
 
 ## 🔧 API Endpoints
 
@@ -280,21 +264,15 @@ Streaming chat endpoint for AI fallback.
 
 **Response:** Streamed text content
 
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
----
 
 ## 🙏 Acknowledgments
 
 - [Puter.js](https://puter.com) - Free AI API access
 - [WebContainers](https://webcontainers.io) - In-browser Node.js
 - [shadcn/ui](https://ui.shadcn.com) - Beautiful UI components
-
----
 
 <p align="center">
   Made with ❤️ by <a href="https://github.com/Sambhav-3010">Sambhav</a>
